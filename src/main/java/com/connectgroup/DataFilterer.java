@@ -1,11 +1,11 @@
 package com.connectgroup;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.Reader;
 import java.util.Collection;
-import java.util.List;
+import java.util.Collections;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class DataFilterer {
 
@@ -14,7 +14,7 @@ public class DataFilterer {
 
     public static Collection<LogEntry> filterByCountry(Reader source, String country) {
 
-        return getLogFileEntryStream(source)
+        return getLogFileEntryStream(source).stream()
                 .filter(logEntry -> logEntry.getCountryCode().equals(country))
                 .collect(Collectors.toList());
     }
@@ -28,8 +28,7 @@ public class DataFilterer {
 
     public static Collection<LogEntry> filterByResponseTimeAboveAverage(Reader source) {
 
-        final List<LogEntry> logEntries = getLogFileEntryStream(source)
-                .collect(Collectors.toList());
+        final Collection<LogEntry> logEntries = getLogFileEntryStream(source);
 
         final Double averageResponseTime = logEntries.stream()
                 .collect(Collectors.averagingLong(LogEntry::getResponseTime));
@@ -39,8 +38,13 @@ public class DataFilterer {
                 .collect(Collectors.toList());
     }
 
-    private static Stream<LogEntry> getLogFileEntryStream(Reader source) {
-        return new BufferedReader(source).lines().skip(1).map(DataFilterer::parseLogFileEntry);
+    private static Collection<LogEntry> getLogFileEntryStream(Reader source) {
+        try (BufferedReader br = new BufferedReader(source)) {
+            return br.lines().skip(1).map(DataFilterer::parseLogFileEntry).collect(Collectors.toList());
+        } catch (IOException e) {
+            e.printStackTrace();
+            return Collections.emptyList();
+        }
     }
 
     private static LogEntry parseLogFileEntry(String logFileEntry) {
